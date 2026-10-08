@@ -22,7 +22,7 @@
 | docker-jenkins-api | https://github.com/popototae/docker-jenkins-api.git |
 | docker-jenkins-frontend | https://github.com/popototae/docker-jenkins-frontend.git |
 
-Repo เป็น Private จึงต้องเลือก Git credentials ที่อ่าน repo ใหม่ได้ หาก credentials เดิมเป็น deploy key เฉพาะ repo เก่า ให้สร้าง key/credentials สำหรับ repo ใหม่ หรือใช้บัญชี Git ที่มีสิทธิ์ทั้งสอง repo
+Repo ทั้งสองเป็น Public จึงเลือก Git Credentials เป็น `- none -` ได้สำหรับ checkout ผ่าน HTTPS
 
 5. ตรวจ project และ volume เดิมบน VPS ก่อนรัน:
 
