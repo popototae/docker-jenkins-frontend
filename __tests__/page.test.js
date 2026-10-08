@@ -73,4 +73,3 @@ describe("Frontend Page Component", () => {
     });
   });
 });
-
