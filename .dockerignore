@@ -4,3 +4,7 @@ npm-debug.log
 .git
 .env*
 !.env.example
+playwright-report
+test-results
+playwright-report-live
+test-results-live

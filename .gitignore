@@ -5,3 +5,7 @@ node_modules/
 coverage/
 .DS_Store
 Thumbs.db
+playwright-report/
+test-results/
+playwright-report-live/
+test-results-live/

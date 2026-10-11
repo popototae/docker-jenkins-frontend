@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "Phi Phi Islands",
+    "detail": "Beautiful island in Thailand with clear blue water.",
+    "latitude": "7.7376190",
+    "longitude": "98.7068755"
+  },
+  {
+    "id": 2,
+    "name": "Eiffel Tower",
+    "detail": "Iconic tower in Paris with a city view.",
+    "latitude": "48.8583736",
+    "longitude": "2.2922926"
+  },
+  {
+    "id": 3,
+    "name": "Mount Fuji",
+    "detail": "A mountain in Japan for an outdoor adventure.",
+    "latitude": "35.3606",
+    "longitude": "138.7274"
+  }
+]

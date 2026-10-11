@@ -7,7 +7,12 @@
     "build": "next build --turbopack",
     "start": "next start -p 3000",
     "lint": "eslint",
-    "test": "jest"
+    "test": "jest",
+    "test:browser": "playwright test --project=chromium",
+    "test:browser:ui": "playwright test --project=chromium --ui",
+    "test:browser:headed": "playwright test --project=chromium --headed --workers=1",
+    "test:browser:live": "playwright test --project=live-api",
+    "test:browser:report": "playwright show-report"
   },
   "dependencies": {
     "next": "15.5.27",
@@ -16,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "1.64.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

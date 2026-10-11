@@ -5,6 +5,7 @@ import Page from "../app/page";
 describe("Frontend Page Component", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
   });
 
   it("renders loading state initially", () => {
@@ -46,8 +47,8 @@ describe("Frontend Page Component", () => {
       expect(screen.getByText("Eiffel Tower")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Beautiful island in Thailand")).toBeInTheDocument();
-    expect(screen.getByText("Iconic tower in Paris")).toBeInTheDocument();
+    expect(screen.getAllByText("Beautiful island in Thailand")[0]).toBeVisible();
+    expect(screen.getAllByText("Iconic tower in Paris")[0]).toBeVisible();
   });
 
   it("renders error state when fetch fails", async () => {

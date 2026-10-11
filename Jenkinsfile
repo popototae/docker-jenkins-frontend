@@ -53,6 +53,24 @@ API_HOST_INTERNAL=http://api:3001
             }
         }
 
+        stage('Browser Test (Playwright)') {
+            steps {
+                echo 'Testing frontend interactions in Chromium before building...'
+                sh '''docker run --rm --init --ipc=host \
+                    --user "$(id -u):$(id -g)" \
+                    -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache \
+                    -v "$WORKSPACE:/app" -w /app \
+                    mcr.microsoft.com/playwright:v1.64.0-noble \
+                    npm run test:browser'''
+            }
+            post {
+                always {
+                    junit testResults: 'test-results/junit.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'playwright-report/**,test-results/**', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 echo 'Building Frontend...'
@@ -72,6 +90,28 @@ API_HOST_INTERNAL=http://api:3001
                 echo 'Performing health check...'
                 sh 'curl -4 -fsS --connect-timeout 3 --max-time 5 -o /dev/null http://127.0.0.1:3000/'
                 sh 'curl -4 -fsS --connect-timeout 3 --max-time 5 http://127.0.0.1:3000/api/attractions'
+            }
+        }
+
+        stage('Browser Test (Live API)') {
+            steps {
+                echo 'Testing the deployed frontend, API, and MySQL together...'
+                sh '''docker run --rm --init --ipc=host \
+                    --user "$(id -u):$(id -g)" \
+                    --network docker-jenkins-pipeline_stack \
+                    -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache \
+                    -e E2E_BASE_URL=http://frontend:3000 \
+                    -e PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report-live \
+                    -e PLAYWRIGHT_JUNIT_OUTPUT_FILE=test-results-live/junit.xml \
+                    -v "$WORKSPACE:/app" -w /app \
+                    mcr.microsoft.com/playwright:v1.64.0-noble \
+                    npm run test:browser:live -- --output=test-results-live'''
+            }
+            post {
+                always {
+                    junit testResults: 'test-results-live/junit.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'playwright-report-live/**,test-results-live/**', allowEmptyArchive: true
+                }
             }
         }
 
