@@ -1,124 +1,107 @@
-# ฝึกทดสอบหน้าบ้านด้วย Playwright
+# ทดสอบหน้าบ้านด้วย Playwright
 
-## เริ่มจากใช้งานเว็บ
+## ทำไมเว็บใน tests เคยต่างจากเว็บจริง
 
-เว็บนี้เป็นรายการสถานที่ท่องเที่ยว ลองค้นหาชื่อหรือคำในคำอธิบาย เรียงชื่อ เปิด View details
-กด Save favorite แล้วเลือก Favorites only ลอง reload และนำรายการโปรดออก
-Clear filters คืนค่าการค้นหา การเรียง และตัวกรอง โดยไม่ลบรายการโปรด
+โค้ดหน้าเว็บเป็น app/page.js เดียวกัน แต่เดิมคำสั่งหลักเปิด Next.js dev server พอร์ต 3100
+แล้ว page.route() ตอบ API ด้วย e2e/fixtures/attractions.json แทนฐานข้อมูลจริง
+fixture มี 3 รายการ ไม่มี coverimage และ Eiffel Tower มีคำว่า city view
+ส่วนเว็บ Docker พอร์ต 3000 อ่าน MySQL จริง 12 รายการ ซึ่งไม่มีคำนี้ในคำอธิบาย Eiffel Tower
+จึงค้นคำเดียวกันแล้วได้ผลต่างกัน และเห็นรูปต่างกันได้
 
-รายการโปรดเก็บใน localStorage ของเบราว์เซอร์และ origin นี้ ไม่มีการเขียนข้อมูลลง API หรือ MySQL
-ถ้าใช้ incognito หรือล้างข้อมูลเว็บไซต์ รายการโปรดจะหาย
+ตอนนี้คำสั่งหลักใช้เว็บที่เปิดอยู่จริง ส่วน mock เป็นคำสั่งแยกที่ระบุชัดเจน
+ไม่แก้ข้อมูลจริงเพื่อให้ตรง fixture และไม่เปลี่ยนเงื่อนไขค้นหาให้ผ่าน tests
 
 ## ติดตั้งครั้งแรก
 
-เปิด terminal ในโฟลเดอร์ `02_frontend`:
+ในโฟลเดอร์ 02_frontend:
 
 ```powershell
 npm ci --include=dev
 npx playwright install chromium
 ```
 
-## 1. เริ่มจากทดสอบ UI ที่ควบคุมข้อมูลได้
+## ทดสอบ Docker ที่เปิดอยู่จริง
+
+เปิด Docker Desktop และเตรียม .env ฝั่ง API จาก .env.example พร้อมรหัสฐานข้อมูลก่อน
+เปิด API/MySQL ก่อน frontend เพราะ frontend ใช้ network ของ API:
 
 ```powershell
+cd 'D:\Work\docker jenkins\01_api'
+docker compose up -d --build --wait
+cd 'D:\Work\docker jenkins\02_frontend'
+docker compose up -d --build --wait
 npm run test:browser
 ```
 
-คำสั่งนี้เรียก Playwright → อ่าน `playwright.config.js` → เปิด Next.js ที่ `127.0.0.1:3100`
-→ เปิด Chromium → รัน `e2e/attractions.spec.js` → สร้างรายงาน → ปิด server ที่เปิดให้
-ไม่ต้องรัน `npm run dev` เอง และพอร์ต 3100 ต้องว่าง
+flow: Chromium → http://localhost:3000 → Next.js /api/attractions → API container → MySQL จริง
+คำสั่งนี้ไม่เปิด server เพิ่ม ไม่ใช้ page.route() และไม่ใช้ข้อมูลจาก fixtures
+ถ้าเว็บ/API เข้าไม่ได้ จะ fail; ถ้าฐานข้อมูลว่างหรือไม่มีรูป ต้องเตรียมข้อมูลก่อน
 
-ชุดนี้ใช้ `page.route()` ตอบ `/api/attractions` ด้วยข้อมูลใน `e2e/fixtures/attractions.json`
-จึงทดสอบโค้ดหน้าบ้านและเบราว์เซอร์จริงได้โดยไม่พึ่ง VPS หรือ MySQL
-ชุดนี้ยังไม่ได้ยืนยันว่า backend หรือฐานข้อมูลทำงาน
-
-มี 11 เคส:
-
-1. เปิดเว็บและเห็นรายการครบ
-2. ค้นหาชื่อโดยไม่สนตัวพิมพ์ใหญ่เล็กหรือช่องว่างหัวท้าย
-3. ค้นหาจากคำอธิบาย
-4. ค้นหาไม่พบ แล้วล้างตัวกรอง
-5. เรียงชื่อทั้งสองทิศทาง
-6. เปิดและปิดรายละเอียด
-7. บันทึกรายการโปรด → reload → กรอง → นำออก → reload
-8. แสดง Loading ขณะรอ API
-9. API ผิดพลาด → กด Try again → โหลดสำเร็จ
-10. ฐานข้อมูลไม่มีรายการ
-11. ค้นหาและบันทึกรายการโปรดบนจอแคบ
-
-## 2. ดูเบราว์เซอร์ทำงานและลองไล่ทีละขั้น
+ดูการทำงานผ่าน UI หรือเปิด browser:
 
 ```powershell
-npm run test:browser:headed
 npm run test:browser:ui
+npm run test:browser:headed
 ```
 
-`headed` เปิดหน้าต่าง Chromium ให้เห็นการทำงาน ส่วน `ui` เปิดเครื่องมือสำหรับเลือก test และดูแต่ละขั้นตอน
-ถ้าอยากดูช้าลงและไล่เอง ให้เปิด debug:
+ใน Playwright UI เลือก project live-api จะเห็นข้อมูล/URL เดียวกับเว็บที่เปิดอยู่
+แต่ละ test มี browser context ใหม่ จึงไม่ใช้รายการโปรดหรือ cookies จาก Chrome ที่เปิดเอง
+localhost กับ 127.0.0.1 เป็นคนละ origin สำหรับ localStorage แม้จะเข้า server เดียวกัน
+
+## ชุดจริงตรวจ 9 เคส
+
+1. ชื่อและจำนวนรายการตรงกับ API จริง และรูปแรกที่ API ส่งมาดาวน์โหลดสำเร็จ (naturalWidth มากกว่า 0)
+2. ค้นหาชื่อจริงโดยไม่สนตัวพิมพ์ใหญ่เล็กและช่องว่างหัวท้าย
+3. ค้นข้อความจากคำอธิบายจริง
+4. ค้น city view แล้วเทียบกับข้อมูลจริง ถ้าไม่มีคำนี้ต้องไม่พบรายการ
+5. ล้างการค้นหา/การเรียง/ตัวกรองรายการโปรด แล้วคืนรายการจริงทั้งหมด
+6. เรียงชื่อทั้ง A–Z และ Z–A
+7. เปิด/ปิดรายละเอียด และตรวจพิกัดจาก API
+8. บันทึกรายการโปรด → reload → กรอง → นำออก → reload
+9. ค้นหาและกรองรายการโปรดบนจอแคบ
+
+ไฟล์ e2e/live-api.spec.js อ่าน response จริงใหม่ในแต่ละ test ไม่กำหนดว่าต้องมี 12 รายการ
+ชุดนี้ไม่เพิ่ม/ลบ/แก้ข้อมูลใน MySQL และรายการโปรดเก็บเฉพาะ localStorage ใน browser ของ test
+การโหลดรูปพึ่งบริการ URL รูปจริง ถ้ารูปเข้าไม่ได้ test เคสแรกจะ fail แทนการผ่านทั้งที่รูปไม่ขึ้น
+ตรวจโหลดเฉพาะรูปแรกที่เลือก ไม่ได้ยืนยันว่ารูปทุกใบหรือทุกบริการภายนอกพร้อมใช้งาน
+
+## ทดสอบ URL อื่น
+
+ค่าเริ่มต้นมาจาก playwright.config.js คือ http://localhost:3000
+เปลี่ยนด้วย E2E_BASE_URL ได้ เช่น VPS ที่ต้องการทดสอบ:
+
+PowerShell:
 
 ```powershell
-npx playwright test --project=chromium --debug
-```
-
-รันเฉพาะเคสด้วยคำในชื่อ test:
-
-```powershell
-npm run test:browser -- --grep "favorite across reload"
-```
-
-## อ่าน test อย่างไร
-
-ตัวอย่างจากเคสค้นหา:
-
-```js
-await page.goto("/");
-await page.getByRole("searchbox", { name: "Search attractions" }).fill("  pHI pHI  ");
-await expect(page.getByRole("article")).toHaveCount(1);
-await expect(page.getByRole("heading", { name: "Phi Phi Islands" })).toBeVisible();
-```
-
-- `page.goto()` เปิดหน้าเว็บ
-- `getByRole()` หาช่องหรือปุ่มจากสิ่งที่ผู้ใช้มองเห็นและชื่อที่เข้าถึงได้
-- `fill()` พิมพ์ข้อความ, `click()` กด, `check()` ติ๊ก checkbox
-- `expect()` ตรวจผลลัพธ์ พร้อมรอให้หน้าเว็บเปลี่ยนจนตรงเงื่อนไข
-
-ไม่ใช้ `waitForTimeout()` เพื่อเดาว่าต้องรอกี่วินาที และแต่ละ test ได้ browser context ใหม่
-รายการโปรดของ test หนึ่งจึงไม่ปนกับอีก test ส่วน reload ภายใน test เดียวกันยังใช้ storage เดิม
-
-## 3. ทดสอบร่วมกับ API และ MySQL จริง
-
-เปิด API ที่ทำงานกับฐานข้อมูลและมีข้อมูลอย่างน้อย 1 รายการก่อน ชุดนี้ไม่สร้างหรือลบข้อมูลในฐานข้อมูล
-ถ้า API อยู่บนเครื่องที่ `localhost:3001`:
-
-```powershell
-npm run test:browser:live
-```
-
-ถ้า API อยู่ที่ VPS แต่ต้องการทดสอบโค้ดหน้าบ้านบนเครื่อง ให้กำหนด backend ก่อนเริ่ม Playwright:
-
-```powershell
-$env:API_HOST_INTERNAL = "http://138.2.70.183:3001"
-npm run test:browser:live
-Remove-Item Env:API_HOST_INTERNAL
-```
-
-flow: Chromium → Next.js บนเครื่อง พอร์ต 3100 → rewrite `/api/attractions` → API บน VPS → MySQL
-
-`e2e/live-api.spec.js` ไม่มี `page.route()` ใช้ชื่อสถานที่จาก response จริง ตรวจจำนวนรายการที่แสดง
-แล้วค้นหา เปิดรายละเอียด บันทึกรายการโปรด กรอง และ reload เพื่อตรวจว่ายังบันทึกอยู่
-ถ้า API เข้าไม่ได้หรือฐานข้อมูลว่าง test จะ fail เพื่อบอกว่าต้องเตรียมระบบก่อน
-
-ถ้าจะทดสอบหน้าบ้านที่ deploy แล้ว ให้ตั้ง URL ของหน้าบ้านแทน:
-
-```powershell
-$env:E2E_BASE_URL = "http://138.2.70.183:3000"
-npm run test:browser:live
+$env:E2E_BASE_URL = 'http://138.2.70.183:3000'
+npm run test:browser
 Remove-Item Env:E2E_BASE_URL
 ```
 
-โหมดนี้ไม่เปิด Next.js เพิ่ม และต้อง deploy โค้ดที่มีฟีเจอร์ใหม่แล้วจึงจะผ่าน
-Next.js อ่าน `API_HOST_INTERNAL` ตอนเริ่ม dev server หรือตอน build;
-การตั้งตัวแปรนี้บนเครื่องไม่ได้เปลี่ยน backend ของเว็บที่ deploy อยู่
+Git Bash/Linux:
+
+```bash
+E2E_BASE_URL=http://138.2.70.183:3000 npm run test:browser
+```
+
+npm run test:browser:live เป็นอีกชื่อสำหรับชุดเดียวกัน ใช้ใน Jenkins หลัง Deploy
+การตั้ง API_HOST_INTERNAL บนเครื่อง test ไม่เปลี่ยน backend ของ frontend ที่เปิดอยู่แล้ว
+หากต้องการตรวจ dev server ที่เปิดเอง ให้ตั้ง E2E_BASE_URL เป็น URL ของ server นั้น
+
+## ชุดจำลองสำหรับควบคุมสถานการณ์
+
+```powershell
+npm run test:browser:mock
+npm run test:browser:mock:ui
+```
+
+flow: Playwright → playwright.mock.config.js → Next.js dev พอร์ต 3100 → Chromium → page.route() ตอบข้อมูลจำลอง
+project ชื่อ mock-chromium ใช้ e2e/attractions.spec.js กับ e2e/fixtures/attractions.json
+มี 11 เคสเดิม รวมกรณี Loading, API error/retry และข้อมูลว่าง โดยไม่หยุดหรือแก้ฐานข้อมูลจริง
+local ใช้ dev server ของ workspace ที่เปิดอยู่พอร์ต 3100 ต่อได้ หากยังไม่เปิด Playwright จะเปิดและปิดให้
+เมื่อ CI=true ต้องเปิด server ใหม่และพอร์ต 3100 ต้องว่าง ไม่ต้องเปิด API/MySQL สำหรับชุดนี้
+รูป/ข้อความใน fixture อาจต่างจากข้อมูลจริง
+การผ่านชุดนี้ยืนยันพฤติกรรมกับข้อมูลจำลอง ไม่ยืนยันเว็บ Docker, การเชื่อมต่อ API, ฐานข้อมูล หรือบริการรูปจริง
 
 ## รายงานและการหาสาเหตุเมื่อ fail
 
@@ -126,52 +109,32 @@ Next.js อ่าน `API_HOST_INTERNAL` ตอนเริ่ม dev server ห
 npm run test:browser:report
 ```
 
-รายงาน HTML อยู่ใน `playwright-report/` เมื่อ fail จะเก็บ screenshot, video และ trace ใน `test-results/`
-เปิด trace จากรายงานเพื่อดู action, DOM และ network ของขั้นที่ล้มเหลว
-การรันครั้งถัดไปเขียนรายงานใหม่ โฟลเดอร์เหล่านี้ไม่ถูก commit และไม่ถูกส่งเข้า Docker build
+รายงาน HTML อยู่ใน playwright-report/ และ JUnit อยู่ที่ test-results/junit.xml
+เมื่อ fail จะเก็บ screenshot/video/trace ใน test-results/ เปิด trace เพื่อดู action, DOM และ network
+การรันชุดถัดไปเขียนรายงาน local ชุดก่อนทับ โฟลเดอร์รายงานไม่ถูก commit หรือส่งเข้า Docker build
+ภาพ DOM snapshot ใน trace เป็นภาพสถานะของ test ณ ตอนนั้น โดย mock response ยังเป็นข้อมูลจำลอง
+จึงใช้แทนหลักฐานว่า API จริงส่งข้อมูลเดียวกันไม่ได้
 
-## Unit test กับ Playwright ต่างกันตรงไหน
-
-| คำสั่ง | สิ่งที่ตรวจ |
-|---|---|
-| `npm test -- --runInBand` | React component ใน Jest / jsdom โดย mock fetch |
-| `npm run test:browser` | UI และการกดใช้งานใน Chromium จริง โดยจำลอง API |
-| `npm run test:browser:live` | Browser + frontend + API + ฐานข้อมูลจริง |
-
-## แล้ว pipeline ล่ะ
-
-Jenkinsfile ใช้คำสั่งตรง ๆ ในแต่ละ stage โดยไม่มีไฟล์ .sh เพิ่ม:
+## Jenkins
 
 ```text
-Unit Test → Browser Test (Playwright) → Build → Deploy → Health Check → Browser Test (Live API)
+Unit Test → Browser Test (Mock UI) → Build → Deploy → Health Check → Browser Test (Live API)
 ```
 
-- `Browser Test (Playwright)` รัน 11 เคส UI โดยเปิด Next.js พอร์ต 3100 ภายใน test container และจำลอง API
-- `Browser Test (Live API)` รัน 1 เคสกับ frontend ที่เพิ่ง deploy ผ่าน `http://frontend:3000` บน Docker network เดียวกับ API แล้วต่อ MySQL จริง
-- ถ้า UI test fail จะหยุดก่อน Build/Deploy; ถ้า live test fail จะทำให้ build fail หลัง deploy แล้ว ไม่มีการ rollback อัตโนมัติ
+- ก่อน Build: npm run test:browser:mock รัน 11 เคสจำลองบน dev server พอร์ต 3100 ภายใน test container
+- หลัง Deploy: npm run test:browser:live รัน 9 เคสจริงกับ http://frontend:3000 บน network docker-jenkins-pipeline_stack
+- ถ้า mock fail จะหยุดก่อน Deploy ถ้า live fail จะทำให้ build fail หลัง Deploy ไม่มี rollback อัตโนมัติ
 
-ทั้งสอง stage ใช้ image `mcr.microsoft.com/playwright:v1.64.0-noble` ซึ่งมี Chromium และ system dependencies
-เวอร์ชัน image ต้องตรงกับ `@playwright/test` ที่ pin ใน package.json ไม่ต้องติดตั้ง Chromium หรือ apt packages บน host Jenkins
-container mount workspace ที่ Unit Test ติดตั้ง npm dependencies ไว้แล้ว และใช้ UID/GID ของ Jenkins เพื่อให้ไฟล์ที่สร้างยังเป็นของ Jenkins
-Node22 ยังใช้ใน Unit Test ส่วน Playwright ใช้ Node ที่มากับ image สำหรับ test runner
-Docker daemon ต้องอยู่เครื่องเดียวกับ Jenkins workspace เพื่อ mount ได้ และต้องเข้าถึง registry เพื่อ pull image ในครั้งแรก
+ใช้ image mcr.microsoft.com/playwright:v1.64.0-noble ที่ตรงกับ @playwright/test ใน package.json
+มี Chromium และ system dependencies ใน image แล้ว ไม่ต้องติดตั้ง browser บน host Jenkins
+container mount workspace และใช้ UID/GID ของ Jenkins เพื่อไม่สร้างไฟล์ที่ Jenkins ลบไม่ได้
+Jenkins ต้องมี JUnit plugin, Docker daemon ที่ mount workspace ได้ และ API/MySQL ที่พร้อมพร้อมข้อมูล/รูปจริง
 
-ต้องมี JUnit plugin และ API job ต้อง deploy สำเร็จ มี network `docker-jenkins-pipeline_stack` กับข้อมูลอย่างน้อย 1 รายการก่อนรัน live test
-ไม่ต้องเพิ่ม credentials สำหรับ Playwright ส่วน API job ยังคงใช้ credentials ของ MySQL เดิม
-
-ดูผลที่หน้า build → Test Result และ Artifacts:
-
-| ชุด | HTML | JUnit / ไฟล์ประกอบ |
+| ชุดใน Jenkins | HTML | JUnit และไฟล์ประกอบ |
 |---|---|---|
-| UI | `playwright-report/` | `test-results/junit.xml` และ `test-results/` |
-| API จริง | `playwright-report-live/` | `test-results-live/junit.xml` และ `test-results-live/` |
+| Mock UI | playwright-report/ | test-results/ |
+| Live API | playwright-report-live/ | test-results-live/ |
 
-`post { always { ... } }` เก็บผลแม้ test fail และรายงานสองชุดแยกกันเพื่อไม่ให้ทับกัน
-ดาวน์โหลดรายงาน HTML พร้อมโฟลเดอร์ data ทั้งชุดเพื่อเปิดอ่าน; trace/video/screenshot จะอยู่ใน Artifacts เมื่อ fail
-GitHub Actions ยังเป็น flow เดิม การเพิ่ม tests รอบนี้ทำเฉพาะ Jenkins
-
-อ้างอิงเอกสารทางการ:
-[Web server](https://playwright.dev/docs/test-webserver),
-[Mock APIs](https://playwright.dev/docs/mock),
-[Writing tests](https://playwright.dev/docs/writing-tests),
-[Trace viewer](https://playwright.dev/docs/trace-viewer)
+post always เก็บ Tests และ Build Artifacts แม้ test fail รายงานสองชุดใน Jenkins ไม่ทับกัน
+Node22 ใช้ใน Unit Test และ application build ส่วน test runner ใช้ Node จาก Playwright image
+GitHub Actions ยังเป็น flow เดิม การแก้ครั้งนี้ปรับ tests/Jenkins โดยตรง ไม่มีไฟล์ .sh เพิ่ม

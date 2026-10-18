@@ -1,8 +1,7 @@
 const { defineConfig, devices } = require("@playwright/test");
 
-// Default: start our local frontend on a test-only port.
-// E2E_BASE_URL: test a frontend that is already running instead.
-const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:3100";
+// Test the running app. Use playwright.mock.config.js for controlled API responses.
+const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
 
 module.exports = defineConfig({
   testDir: "./e2e",
@@ -23,21 +22,9 @@ module.exports = defineConfig({
   },
   projects: [
     {
-      name: "chromium",
-      testMatch: "attractions.spec.js",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
       name: "live-api",
       testMatch: "live-api.spec.js",
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: process.env.E2E_BASE_URL ? undefined : {
-    command: "npx next dev --turbopack --hostname 127.0.0.1 --port 3100",
-    url: baseURL,
-    reuseExistingServer: false,
-    timeout: 120_000,
-    env: { NEXT_TELEMETRY_DISABLED: "1" },
-  },
 });

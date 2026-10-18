@@ -53,15 +53,15 @@ API_HOST_INTERNAL=http://api:3001
             }
         }
 
-        stage('Browser Test (Playwright)') {
+        stage('Browser Test (Mock UI)') {
             steps {
-                echo 'Testing frontend interactions in Chromium before building...'
+                echo 'Testing UI with simulated API responses on port 3100 before building...'
                 sh '''docker run --rm --init --ipc=host \
                     --user "$(id -u):$(id -g)" \
                     -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache \
                     -v "$WORKSPACE:/app" -w /app \
                     mcr.microsoft.com/playwright:v1.64.0-noble \
-                    npm run test:browser'''
+                    npm run test:browser:mock'''
             }
             post {
                 always {

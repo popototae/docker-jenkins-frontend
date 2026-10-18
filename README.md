@@ -21,14 +21,16 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Playwright เปิด Next.js ที่พอร์ต 3100 ให้เอง ชุดเริ่มต้นทดสอบผ่าน Chromium ด้วยข้อมูล API จำลอง ไม่ต้องเปิด MySQL
-ชุด `npm run test:browser:live` ใช้ API และฐานข้อมูลจริง ต้องเปิด API ก่อน
-Jenkins รันทั้งชุด UI ก่อน Build และชุด API จริงหลัง Deploy โดยใช้ Playwright Docker image
+คำสั่งหลักทดสอบเว็บที่เปิดอยู่จริงที่ `http://localhost:3000` ใช้ API/MySQL จริง รวม 9 เคส ไม่เปิด dev server เพิ่มและไม่แทนข้อมูล API
+เปิด Docker Compose ฝั่ง API ก่อน frontend แล้วจึงรัน tests; ต้องมีข้อมูลอย่างน้อย 1 รายการพร้อมรูปภาพ
+`npm run test:browser:ui` เปิดเครื่องมือ Playwright UI กับระบบจริงเดียวกัน
+ชุดจำลองใช้คำสั่งแยก `npm run test:browser:mock` เปิด dev server พอร์ต 3100 และแทนข้อมูล API ด้วย fixture 3 รายการ รวม 11 เคส
+Jenkins รัน mock ก่อน Build และ 9 เคสจริงหลัง Deploy โดยใช้ Playwright Docker image
 
 ## Jenkins flow
 
 ```text
-Checkout → Prepare Environment → Validate → Unit Test → Browser Test (Playwright) → Build → Deploy Frontend → Health Check → Browser Test (Live API) → Verify Deployment
+Checkout → Prepare Environment → Validate → Unit Test → Browser Test (Mock UI) → Build → Deploy Frontend → Health Check → Browser Test (Live API) → Verify Deployment
 ```
 
 อ่าน [Jenkinsfile](Jenkinsfile) ตาม stage ได้โดยตรง ไม่เรียกไฟล์ .sh ใช้ NodeJS tool ชื่อ `Node22` และ polling repo นี้ประมาณทุก 2 นาที
