@@ -20,7 +20,7 @@ jobs:
     - name: Install Dependencies
       run: npm ci --include=dev
     - name: Run Unit Tests
-      run: npm test -- --runInBand
+      run: npm test
   deploy:
     name: Build, Deploy and Health Check
     needs: unit-tests

@@ -49,19 +49,21 @@ API_HOST_INTERNAL=http://api:3001
             steps {
                 echo 'Running Frontend unit tests...'
                 sh 'npm ci --include=dev'
-                sh 'npm test -- --runInBand'
+                sh 'npm test'
             }
         }
 
         stage('Browser Test (Mock UI)') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.64.0-noble'
+                    reuseNode true
+                    args '--init --ipc=host -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache'
+                }
+            }
             steps {
                 echo 'Testing UI with simulated API responses on port 3100 before building...'
-                sh '''docker run --rm --init --ipc=host \
-                    --user "$(id -u):$(id -g)" \
-                    -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache \
-                    -v "$WORKSPACE:/app" -w /app \
-                    mcr.microsoft.com/playwright:v1.64.0-noble \
-                    npm run test:browser:mock'''
+                sh 'npm run test:browser:mock'
             }
             post {
                 always {
@@ -94,18 +96,16 @@ API_HOST_INTERNAL=http://api:3001
         }
 
         stage('Browser Test (Live API)') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.64.0-noble'
+                    reuseNode true
+                    args '--init --ipc=host --network host -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache'
+                }
+            }
             steps {
                 echo 'Testing the deployed frontend, API, and MySQL together...'
-                sh '''docker run --rm --init --ipc=host \
-                    --user "$(id -u):$(id -g)" \
-                    --network docker-jenkins-pipeline_stack \
-                    -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache \
-                    -e E2E_BASE_URL=http://frontend:3000 \
-                    -e PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report-live \
-                    -e PLAYWRIGHT_JUNIT_OUTPUT_FILE=test-results-live/junit.xml \
-                    -v "$WORKSPACE:/app" -w /app \
-                    mcr.microsoft.com/playwright:v1.64.0-noble \
-                    npm run test:browser:live -- --output=test-results-live'''
+                sh 'npm run test:browser'
             }
             post {
                 always {

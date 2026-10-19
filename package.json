@@ -7,14 +7,15 @@
     "build": "next build --turbopack",
     "start": "next start -p 3000",
     "lint": "eslint",
-    "test": "jest",
+    "test": "jest --runInBand",
     "test:browser": "playwright test --project=live-api",
-    "test:browser:ui": "playwright test --project=live-api --ui",
-    "test:browser:headed": "playwright test --project=live-api --headed --workers=1",
+    "test:browser:ui": "npm run test:browser -- --ui",
+    "test:browser:headed": "npm run test:browser -- --headed --workers=1",
     "test:browser:mock": "playwright test --config=playwright.mock.config.js",
-    "test:browser:mock:ui": "playwright test --config=playwright.mock.config.js --ui",
-    "test:browser:live": "playwright test --project=live-api",
-    "test:browser:report": "playwright show-report"
+    "test:browser:mock:ui": "npm run test:browser:mock -- --ui",
+    "test:browser:live": "npm run test:browser",
+    "test:browser:report": "playwright show-report playwright-report-live",
+    "test:browser:mock:report": "playwright show-report playwright-report"
   },
   "dependencies": {
     "next": "15.5.27",

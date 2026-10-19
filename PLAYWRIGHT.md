@@ -84,7 +84,7 @@ Git Bash/Linux:
 E2E_BASE_URL=http://138.2.70.183:3000 npm run test:browser
 ```
 
-npm run test:browser:live เป็นอีกชื่อสำหรับชุดเดียวกัน ใช้ใน Jenkins หลัง Deploy
+npm run test:browser:live เป็น alias ที่เรียก npm run test:browser อีกทีเพื่อไม่เก็บคำสั่งซ้ำ
 การตั้ง API_HOST_INTERNAL บนเครื่อง test ไม่เปลี่ยน backend ของ frontend ที่เปิดอยู่แล้ว
 หากต้องการตรวจ dev server ที่เปิดเอง ให้ตั้ง E2E_BASE_URL เป็น URL ของ server นั้น
 
@@ -109,9 +109,10 @@ local ใช้ dev server ของ workspace ที่เปิดอยู่
 npm run test:browser:report
 ```
 
-รายงาน HTML อยู่ใน playwright-report/ และ JUnit อยู่ที่ test-results/junit.xml
-เมื่อ fail จะเก็บ screenshot/video/trace ใน test-results/ เปิด trace เพื่อดู action, DOM และ network
-การรันชุดถัดไปเขียนรายงาน local ชุดก่อนทับ โฟลเดอร์รายงานไม่ถูก commit หรือส่งเข้า Docker build
+รายงานจริงอยู่ใน playwright-report-live/ และ JUnit/screenshot/video/trace อยู่ใน test-results-live/
+รายงาน mock อยู่ใน playwright-report/ และ test-results/ เปิดด้วย npm run test:browser:mock:report
+แต่ละชุดเขียนทับรายงานเดิมของตัวเอง โดยไม่ทับอีกชุด ทั้ง local และ Jenkins ใช้ paths จาก config เดียวกัน
+โฟลเดอร์รายงานไม่ถูก commit หรือส่งเข้า Docker build
 ภาพ DOM snapshot ใน trace เป็นภาพสถานะของ test ณ ตอนนั้น โดย mock response ยังเป็นข้อมูลจำลอง
 จึงใช้แทนหลักฐานว่า API จริงส่งข้อมูลเดียวกันไม่ได้
 
@@ -122,19 +123,37 @@ Unit Test → Browser Test (Mock UI) → Build → Deploy → Health Check → B
 ```
 
 - ก่อน Build: npm run test:browser:mock รัน 11 เคสจำลองบน dev server พอร์ต 3100 ภายใน test container
-- หลัง Deploy: npm run test:browser:live รัน 9 เคสจริงกับ http://frontend:3000 บน network docker-jenkins-pipeline_stack
+- หลัง Deploy: npm run test:browser รัน 9 เคสจริงกับ http://localhost:3000 เหมือน local
 - ถ้า mock fail จะหยุดก่อน Deploy ถ้า live fail จะทำให้ build fail หลัง Deploy ไม่มี rollback อัตโนมัติ
 
-ใช้ image mcr.microsoft.com/playwright:v1.64.0-noble ที่ตรงกับ @playwright/test ใน package.json
-มี Chromium และ system dependencies ใน image แล้ว ไม่ต้องติดตั้ง browser บน host Jenkins
-container mount workspace และใช้ UID/GID ของ Jenkins เพื่อไม่สร้างไฟล์ที่ Jenkins ลบไม่ได้
-Jenkins ต้องมี JUnit plugin, Docker daemon ที่ mount workspace ได้ และ API/MySQL ที่พร้อมพร้อมข้อมูล/รูปจริง
+Jenkins ใช้ Docker agent ของแต่ละ stage กับ image mcr.microsoft.com/playwright:v1.64.0-noble
+ซึ่งตรงกับ @playwright/test ใน package.json มี Chromium และ system dependencies แล้ว
+reuseNode true ทำให้ Jenkins mount workspace เดิม และ Docker Pipeline จัดการ UID/GID ของ Jenkins ให้
+live agent ใช้ --network host บน Linux จึงเข้า http://localhost:3000 ที่ Docker Compose เปิดไว้บน VPS ได้เหมือน local
+Jenkins ต้องมีทั้ง Docker Pipeline plugin และ JUnit plugin, Docker daemon ที่ mount workspace ได้ และ API/MySQL ที่พร้อมพร้อมข้อมูล/รูปจริง
+ติดตั้ง Docker Pipeline ครั้งเดียวที่ Manage Jenkins → Plugins → Available plugins → Docker Pipeline
+หากยังไม่มี plugin นี้ Jenkins จะอ่าน agent docker ไม่ผ่าน ต้องติดตั้งก่อนใช้ Jenkinsfile ใหม่นี้
 
 | ชุดใน Jenkins | HTML | JUnit และไฟล์ประกอบ |
 |---|---|---|
 | Mock UI | playwright-report/ | test-results/ |
 | Live API | playwright-report-live/ | test-results-live/ |
 
-post always เก็บ Tests และ Build Artifacts แม้ test fail รายงานสองชุดใน Jenkins ไม่ทับกัน
+post always เก็บ Tests และ Build Artifacts แม้ test fail รายงานสองชุดทั้ง local และ Jenkins ไม่ทับกัน
 Node22 ใช้ใน Unit Test และ application build ส่วน test runner ใช้ Node จาก Playwright image
 GitHub Actions ยังเป็น flow เดิม การแก้ครั้งนี้ปรับ tests/Jenkins โดยตรง ไม่มีไฟล์ .sh เพิ่ม
+
+## คำสั่งเดียวกันระหว่าง local กับ Jenkins
+
+| ชุด | local | steps ใน Jenkins |
+|---|---|---|
+| API unit | npm test | sh 'npm test' |
+| API Bruno | npm run test:api | sh 'npm run test:api' |
+| Frontend unit | npm test | sh 'npm test' |
+| Frontend mock | npm run test:browser:mock | sh 'npm run test:browser:mock' |
+| Frontend จริง | npm run test:browser | sh 'npm run test:browser' |
+
+คำสั่งเครื่องมืออยู่ใน scripts ของ package.json ส่วน URL/รายงานอยู่ใน Playwright config
+Jenkinsfile เลือก agent และลำดับ stages แล้วเรียก npm เท่านั้น ไม่เก็บ bru CLI, playwright CLI, output flags หรือ docker run ซ้ำ
+แก้รายละเอียดคำสั่งที่ package.json แล้ว commit/push ให้ Jenkins checkout revision ใหม่
+การแก้ที่ยังไม่ commit/push จะมีผลเฉพาะเครื่อง local

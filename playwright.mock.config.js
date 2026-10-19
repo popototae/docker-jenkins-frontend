@@ -4,6 +4,12 @@ const baseURL = "http://127.0.0.1:3100";
 
 module.exports = defineConfig({
   ...liveConfig,
+  outputDir: "test-results",
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: "playwright-report" }],
+    ["junit", { outputFile: "test-results/junit.xml" }],
+  ],
   use: { ...liveConfig.use, baseURL },
   projects: [{
     name: "mock-chromium",

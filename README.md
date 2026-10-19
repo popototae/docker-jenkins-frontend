@@ -37,6 +37,7 @@ Checkout → Prepare Environment → Validate → Unit Test → Browser Test (Mo
 
 Playwright ใช้ Docker image `mcr.microsoft.com/playwright:v1.64.0-noble` ที่มี Chromium และ system dependencies แล้ว
 ไม่ต้องติดตั้ง browser บน host Jenkins เพิ่ม แต่ต้องมี JUnit plugin เพื่อแสดงผล tests
+ขั้น browser ใช้ Docker agent จึงต้องมี Docker Pipeline plugin ด้วย ก่อนนำ Jenkinsfile ใหม่นี้ไปใช้
 รายงานและไฟล์ประกอบของทั้งสองชุดเก็บแยกกันใน Artifacts แม้ tests ไม่ผ่าน
 ครั้งแรกอาจใช้เวลานานเพื่อดาวน์โหลด image; หากตั้งระบบใหม่ ให้รัน API job ให้ผ่านก่อน frontend job
 
@@ -48,7 +49,7 @@ Frontend ไม่ใช้ credentials ฐานข้อมูล ต้อง
 
 สำหรับ Docker ให้คัดลอก `.env.example` เป็น `.env` แล้วรัน `docker compose up -d --build --wait` หลังเปิด API
 
-Unit tests: `npm ci --include=dev` แล้ว `npm test -- --runInBand`
+Unit tests: `npm ci --include=dev` แล้ว `npm test` เหมือน Jenkins และ GitHub Actions
 
 พัฒนาในเครื่อง: `npm run dev` โดย API อยู่ที่ `localhost:3001` หรือกำหนด `API_HOST_INTERNAL` ก่อนเริ่ม Next.js ค่า rewrite ถูกใช้ตอน build; Dockerfile ใช้ `http://api:3001` เป็น API ภายใน network
 

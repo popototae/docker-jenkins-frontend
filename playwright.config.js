@@ -5,14 +5,15 @@ const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
 
 module.exports = defineConfig({
   testDir: "./e2e",
+  outputDir: "test-results-live",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 2,
   reporter: [
     ["list"],
-    ["html", { open: "never" }],
-    ["junit", { outputFile: process.env.PLAYWRIGHT_JUNIT_OUTPUT_FILE || "test-results/junit.xml" }],
+    ["html", { open: "never", outputFolder: "playwright-report-live" }],
+    ["junit", { outputFile: process.env.PLAYWRIGHT_JUNIT_OUTPUT_FILE || "test-results-live/junit.xml" }],
   ],
   use: {
     baseURL,
