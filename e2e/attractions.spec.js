@@ -27,7 +27,7 @@ test("searches by name, ignoring case and surrounding spaces", async ({ page }) 
 
 test("searches descriptions too", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("searchbox").fill("city view");
+  await page.getByRole("searchbox", { name: "Search attractions" }).fill("city view");
   await expect(page.getByRole("article")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Eiffel Tower" })).toBeVisible();
 });
