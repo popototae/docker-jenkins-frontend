@@ -53,6 +53,29 @@ API_HOST_INTERNAL=http://api:3001
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv(installationName: 'SonarQube', credentialsId: 'sonarqube-frontend-token') {
+                    withCredentials([string(credentialsId: 'sonarqube-frontend-token', variable: 'SONAR_TOKEN')]) {
+                        sh 'npm run sonar'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    script {
+                        def result = waitForQualityGate()
+                        if (result.status != 'OK') {
+                            error "Quality Gate failed: ${result.status}"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Browser Test (Mock UI)') {
             // agent {
             //     docker {
