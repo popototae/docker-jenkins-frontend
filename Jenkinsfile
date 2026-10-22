@@ -77,13 +77,13 @@ API_HOST_INTERNAL=http://api:3001
         }
 
         stage('Browser Test (Mock UI)') {
-            // agent {
-            //     docker {
-            //         image 'mcr.microsoft.com/playwright:v1.64.0-noble'
-            //         reuseNode true
-            //         args '--init --ipc=host -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache'
-            //     }
-            // }
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.64.0-noble'
+                    reuseNode true
+                    args '--init --ipc=host -e CI=true -e HOME=/tmp -e npm_config_cache=/tmp/npm-cache'
+                }
+            }
             steps {
                 echo 'Testing UI with simulated API responses on port 3100 before building...'
                 sh 'npm run test:browser:mock'
